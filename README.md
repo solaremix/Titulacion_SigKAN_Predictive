@@ -1,86 +1,86 @@
 # Titulacion\_SigKAN\_Predictive
 
-**Predicción de contaminantes de calidad del aire interior (IAQ) mediante Sigmoidal Kolmogorov-Arnold Networks (SigKAN)**
+**Indoor Air Quality (IAQ) contaminant prediction using Sigmoidal Kolmogorov-Arnold Networks (SigKAN)**
 
-Proyecto de Titulación — Ingeniería de Sistemas, Universidad de Lima  
-Autores: **Rodrigo Linares** · **Franco Gómez**
+Senior Thesis — Systems Engineering, Universidad de Lima
+Authors: **Rodrigo Linares** · **Franco Gómez**
 
 ---
 
-## Descripción
+## Overview
 
-Este repositorio implementa un modelo **SigKAN Temporal** para predecir cuatro contaminantes críticos de calidad del aire interior:
+This repository implements a **SigKAN Temporal** model for predicting four critical indoor air quality contaminants:
 
-| Contaminante | Unidad  | Relevancia |
+| Contaminant | Unit   | Relevance |
 |---|---|---|
-| CO₂          | ppm     | Ventilación / cognición |
-| PM2.5        | µg/m³   | Salud respiratoria |
-| PM10         | µg/m³   | Salud respiratoria |
-| TVOC         | ppb     | Compuestos orgánicos volátiles |
+| CO₂         | ppm    | Ventilation / cognition |
+| PM2.5       | µg/m³  | Respiratory health |
+| PM10        | µg/m³  | Respiratory health |
+| TVOC        | ppb    | Total volatile organic compounds |
 
-La arquitectura combina un **TemporalMixer** (convolución depthwise + gated activation) con una red **SigKAN** (KAN con activaciones Sigmoid y SiLU por arista) para capturar dependencias temporales complejas sin el costo computacional de Transformers.
+The architecture combines a **TemporalMixer** (depthwise convolution + gated activation) with a **SigKAN** network (KAN with per-edge Sigmoid and SiLU activations) to capture complex temporal dependencies without the computational overhead of Transformers.
 
 ---
 
-## Arquitectura
+## Architecture
 
 ```
-Entrada (B, W, F)
+Input (B, W, F)
        │
- ┌─────▼──────┐     x num_mix_layers
+ ┌─────▼──────┐     × num_mix_layers
  │TemporalMixer│  ← depthwise Conv1d + Sigmoid gate + LayerNorm
  └─────┬──────┘
        │ flatten → (B, W×F)
  ┌─────▼──────┐
- │  SigKAN    │  ← capas KAN con SigKANEdge (Sigmoid basis + SiLU residual)
+ │   SigKAN   │  ← KAN layers with SigKANEdge (Sigmoid basis + SiLU residual)
  └─────┬──────┘
        │
-   Predicción (B, 4)   # CO₂, PM2.5, PM10, TVOC
+  Prediction (B, 4)   # CO₂, PM2.5, PM10, TVOC
 ```
 
-### Componentes core (`src/`)
+### Core components (`src/`)
 
-| Módulo | Clase | Rol |
+| Module | Class | Role |
 |---|---|---|
-| `sigkan.py` | `SigKANEdge` | Arista KAN: basis Sigmoid + residual SiLU |
-| `sigkan.py` | `SigKANLayer` | Capa KAN completa con LayerNorm |
-| `sigkan.py` | `SigKAN` | Stack de capas + dropout |
-| `temporal_dataset.py` | `IAQTemporalPreprocessor` | Split 70/15/15 temporal, StandardScaler |
-| `temporal_dataset.py` | `SlidingWindowDataset` | Ventanas deslizantes para PyTorch |
-| `sigkan_temporal.py` | `TemporalMixer` | Mixing temporal con conv depthwise + gate |
-| `sigkan_temporal.py` | `SigKANTemporal` | Modelo completo + método `.encode()` |
+| `sigkan.py` | `SigKANEdge` | KAN edge: Sigmoid basis + SiLU residual |
+| `sigkan.py` | `SigKANLayer` | Full KAN layer with LayerNorm |
+| `sigkan.py` | `SigKAN` | Layer stack + dropout |
+| `temporal_dataset.py` | `IAQTemporalPreprocessor` | Temporal 70/15/15 split, StandardScaler |
+| `temporal_dataset.py` | `SlidingWindowDataset` | Sliding-window PyTorch Dataset |
+| `sigkan_temporal.py` | `TemporalMixer` | Temporal mixing: depthwise conv + sigmoid gate |
+| `sigkan_temporal.py` | `SigKANTemporal` | Full model + `.encode()` for latent extraction |
 
 ---
 
-## Estructura del proyecto
+## Project structure
 
 ```
 Titulacion_SigKAN_Predictive/
 ├── src/
 │   ├── __init__.py
-│   ├── sigkan.py              # SigKANEdge, SigKANLayer, SigKAN
-│   ├── temporal_dataset.py    # IAQTemporalPreprocessor, SlidingWindowDataset
-│   └── sigkan_temporal.py     # TemporalMixer, SigKANTemporal
+│   ├── sigkan.py                  # SigKANEdge, SigKANLayer, SigKAN
+│   ├── temporal_dataset.py        # IAQTemporalPreprocessor, SlidingWindowDataset
+│   └── sigkan_temporal.py         # TemporalMixer, SigKANTemporal
 ├── notebooks/
-│   ├── co2/                   # Experimento CO₂
-│   ├── pm2_5/                 # Experimento PM2.5
-│   ├── pm10/                  # Experimento PM10
-│   └── tvoc/                  # Experimento TVOC
-├── data/                      # Datasets (excluido de git)
-├── models/                    # Checkpoints .pth (excluido de git)
-├── results/figures/           # Gráficas de resultados
+│   ├── co2/                       # CO₂ experiment
+│   ├── pm2_5/                     # PM2.5 experiment
+│   ├── pm10/                      # PM10 experiment
+│   └── tvoc/                      # TVOC experiment
+├── data/                          # Datasets (excluded from git)
+├── models/                        # Trained checkpoints .pth (excluded from git)
+├── results/figures/               # Output plots
 ├── scripts/
-│   └── generar_notebooks.py
-├── main.py                    # Entrypoint de validación rápida
-├── pyproject.toml             # Dependencias gestionadas con uv
-└── uv.lock                    # Lock file para reproducibilidad exacta
+│   └── generate_notebooks.py      # Notebook generator
+├── main.py                        # Quick smoke-test entrypoint
+├── pyproject.toml                 # Dependencies managed with uv
+└── uv.lock                        # Lock file for exact reproducibility
 ```
 
 ---
 
-## Instalación
+## Installation
 
-Requiere [uv](https://docs.astral.sh/uv/).
+Requires [uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/solaremix/Titulacion_SigKAN_Predictive.git
@@ -88,24 +88,24 @@ cd Titulacion_SigKAN_Predictive
 uv sync
 ```
 
-> `uv sync` crea el `.venv` e instala las dependencias exactas del `uv.lock`.
+> `uv sync` creates the `.venv` and installs the exact dependencies from `uv.lock`.
 
 ---
 
-## Uso rápido
+## Quick start
 
 ```python
 from src import SigKAN, SigKANTemporal, IAQTemporalPreprocessor, SlidingWindowDataset
 import torch
 
-# Preprocesamiento
+# Preprocessing
 prep = IAQTemporalPreprocessor()
 (X_train, y_train), (X_val, y_val), (X_test, y_test) = prep.fit_transform(df)
 
-# Dataset con ventana de 24 pasos
+# Dataset with 24-step look-back window
 train_ds = SlidingWindowDataset(X_train, y_train, window=24, horizon=1)
 
-# Modelo temporal
+# Temporal model
 model = SigKANTemporal(
     in_features=X_train.shape[1],
     window=24,
@@ -117,27 +117,28 @@ model = SigKANTemporal(
 
 # Forward pass
 x = torch.randn(32, 24, X_train.shape[1])
-pred = model(x)            # (32, 4)
-latent = model.encode(x)   # (32, 64)
+pred   = model(x)           # (32, 4)
+latent = model.encode(x)    # (32, 64)
 
-print(f"Parámetros: {model.count_parameters():,}")
+print(f"Parameters: {model.count_parameters():,}")
 ```
 
 ---
 
-## Ramas
+## Branch strategy
 
-| Rama | Propósito |
+| Branch | Purpose |
 |---|---|
-| `main` | Producción / releases estables |
-| `develop` | Integración de features |
-| `feature/setup-sigkan-core` | Setup inicial, arquitectura core |
+| `main` | Production / stable releases |
+| `develop` | Feature integration |
+| `feature/setup-sigkan-core` | Initial setup, core architecture |
+| `feature/english-translation` | Full codebase translated to English |
 
 ---
 
-## Dependencias principales
+## Key dependencies
 
-| Paquete | Versión |
+| Package | Version |
 |---|---|
 | torch | 2.11.0 |
 | numpy | 2.4.4 |
@@ -146,10 +147,10 @@ print(f"Parámetros: {model.count_parameters():,}")
 | matplotlib | 3.10.8 |
 | ipykernel | 7.2.0 |
 
-Gestionadas con `uv` — reproducibilidad garantizada vía `uv.lock`.
+Managed with `uv` — exact reproducibility guaranteed via `uv.lock`.
 
 ---
 
-## Licencia
+## License
 
-MIT — ver [LICENSE](LICENSE) para detalles.
+MIT — see [LICENSE](LICENSE) for details.
