@@ -1,7 +1,7 @@
 [project]
 name = "titulacion-sigkan-predictive"
 version = "0.1.0"
-description = "Add your description here"
+description = "Predicción de contaminantes IAQ (CO2, PM2.5, PM10, TVOC) con Sigmoidal KAN temporal"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
